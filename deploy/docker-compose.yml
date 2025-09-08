@@ -1,0 +1,99 @@
+services:
+  postgres-catalog:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: catalog
+      POSTGRES_PASSWORD: catalog
+      POSTGRES_DB: catalogdb
+    ports: ["5433:5432"]
+    volumes: ["catalog_data:/var/lib/postgresql/data"]
+
+  postgres-identity:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: identity
+      POSTGRES_PASSWORD: identity
+      POSTGRES_DB: identitydb
+    ports: ["5434:5432"]
+    volumes: ["identity_data:/var/lib/postgresql/data"]
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317"   # OTLP gRPC (сюда шлёт OpenTelemetry)
+
+  catalog:
+    build:
+      context: ../
+      dockerfile: services/catalog/Dockerfile
+    environment:
+      ConnectionStrings__Default: Host=postgres-catalog;Port=5432;Database=catalogdb;Username=catalog;Password=catalog
+      Jwt__Issuer: microshop
+      Jwt__Audience: microshop
+      Jwt__Key: g_#eB9VGUzOJ);PW%hKE[tMd]y=\Zlv2Y~fS$RsHC,N'I?x5&0oa`7w}Ar|c63/.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+    ports: ["5201:8080"]
+    depends_on: [postgres-catalog, jaeger]
+
+  identity:
+    build:
+      context: ../
+      dockerfile: services/identity/Dockerfile
+    environment:
+      ConnectionStrings__Default: Host=postgres-identity;Port=5432;Database=identitydb;Username=identity;Password=identity
+      Jwt__Issuer: microshop
+      Jwt__Audience: microshop
+      Jwt__Key: g_#eB9VGUzOJ);PW%hKE[tMd]y=\Zlv2Y~fS$RsHC,N'I?x5&0oa`7w}Ar|c63/.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+    ports: ["5202:8080"]
+    depends_on: [postgres-identity, jaeger]
+
+  gateway:
+    build:
+      context: ../
+      dockerfile: gateway/Dockerfile
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+    ports: ["8080:8080"]
+    depends_on: [catalog, identity, jaeger]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports: ["5672:5672", "15672:15672"] # UI: http://localhost:15672 (guest/guest)
+
+  basket:
+    build:
+      context: ../
+      dockerfile: services/basket/Dockerfile
+    environment:
+      Jwt__Issuer: microshop
+      Jwt__Audience: microshop
+      Jwt__Key: g_#eB9VGUzOJ);PW%hKE[tMd]y=\Zlv2Y~fS$RsHC,N'I?x5&0oa`7w}Ar|c63/.
+      Redis__Configuration: redis:6379
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: guest
+      RabbitMQ__Password: guest
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+    ports: ["5203:8080"]
+    depends_on: [redis, rabbitmq, jaeger]
+
+  ordering:
+    build:
+      context: ../
+      dockerfile: services/ordering/Dockerfile
+    environment:
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Username: guest
+      RabbitMQ__Password: guest
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+    ports: ["5204:8080"]
+    depends_on: [rabbitmq, jaeger]
+
+volumes:
+  catalog_data:
+  identity_data:

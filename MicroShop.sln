@@ -1,0 +1,61 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "services", "services", "{C8CDC355-283B-4AE3-8E8F-0DC7340ACB23}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroShop.Contracts", "services\contracts\MicroShop.Contracts.csproj", "{936A75C4-7B52-47F7-812A-F393EBD8B91E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroShop.Services.Catalog", "services\catalog\MicroShop.Services.Catalog.csproj", "{0822A718-6650-42BA-9707-C5E552EC1F3B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroShop.Services.Identity", "services\identity\MicroShop.Services.Identity.csproj", "{F500E30C-6CD1-4A3A-A8C9-C0378CC48610}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroShop.Gateway", "gateway\MicroShop.Gateway.csproj", "{24379B82-E4B0-43B6-8D6D-FBDB86FD3EEF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroShop.Services.Basket", "services\basket\MicroShop.Services.Basket.csproj", "{7F08044C-AE64-4D9C-848F-94A38AF83337}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroShop.Services.Ordering", "services\ordering\MicroShop.Services.Ordering.csproj", "{558FB1DA-9205-4544-85C6-9680ED9011FE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{936A75C4-7B52-47F7-812A-F393EBD8B91E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{936A75C4-7B52-47F7-812A-F393EBD8B91E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{936A75C4-7B52-47F7-812A-F393EBD8B91E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{936A75C4-7B52-47F7-812A-F393EBD8B91E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0822A718-6650-42BA-9707-C5E552EC1F3B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0822A718-6650-42BA-9707-C5E552EC1F3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0822A718-6650-42BA-9707-C5E552EC1F3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0822A718-6650-42BA-9707-C5E552EC1F3B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F500E30C-6CD1-4A3A-A8C9-C0378CC48610}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F500E30C-6CD1-4A3A-A8C9-C0378CC48610}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F500E30C-6CD1-4A3A-A8C9-C0378CC48610}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F500E30C-6CD1-4A3A-A8C9-C0378CC48610}.Release|Any CPU.Build.0 = Release|Any CPU
+		{24379B82-E4B0-43B6-8D6D-FBDB86FD3EEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{24379B82-E4B0-43B6-8D6D-FBDB86FD3EEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{24379B82-E4B0-43B6-8D6D-FBDB86FD3EEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{24379B82-E4B0-43B6-8D6D-FBDB86FD3EEF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F08044C-AE64-4D9C-848F-94A38AF83337}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F08044C-AE64-4D9C-848F-94A38AF83337}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F08044C-AE64-4D9C-848F-94A38AF83337}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F08044C-AE64-4D9C-848F-94A38AF83337}.Release|Any CPU.Build.0 = Release|Any CPU
+		{558FB1DA-9205-4544-85C6-9680ED9011FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{558FB1DA-9205-4544-85C6-9680ED9011FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{558FB1DA-9205-4544-85C6-9680ED9011FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{558FB1DA-9205-4544-85C6-9680ED9011FE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{936A75C4-7B52-47F7-812A-F393EBD8B91E} = {C8CDC355-283B-4AE3-8E8F-0DC7340ACB23}
+		{0822A718-6650-42BA-9707-C5E552EC1F3B} = {C8CDC355-283B-4AE3-8E8F-0DC7340ACB23}
+		{F500E30C-6CD1-4A3A-A8C9-C0378CC48610} = {C8CDC355-283B-4AE3-8E8F-0DC7340ACB23}
+		{7F08044C-AE64-4D9C-848F-94A38AF83337} = {C8CDC355-283B-4AE3-8E8F-0DC7340ACB23}
+		{558FB1DA-9205-4544-85C6-9680ED9011FE} = {C8CDC355-283B-4AE3-8E8F-0DC7340ACB23}
+	EndGlobalSection
+EndGlobal
