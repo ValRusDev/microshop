@@ -17,6 +17,16 @@ services:
     ports: ["5434:5432"]
     volumes: ["identity_data:/var/lib/postgresql/data"]
 
+  postgres-ordering:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ordering
+      POSTGRES_PASSWORD: ordering
+      POSTGRES_DB: orderingdb
+    ports: ["5435:5432"]
+    volumes:
+      - pg_ordering:/var/lib/postgresql/data
+
   jaeger:
     image: jaegertracing/all-in-one:1.54
     ports:
@@ -87,13 +97,15 @@ services:
       context: ../
       dockerfile: services/ordering/Dockerfile
     environment:
+      ConnectionStrings__Default: Host=postgres-ordering;Port=5432;Database=orderingdb;Username=ordering;Password=ordering
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Username: guest
       RabbitMQ__Password: guest
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
     ports: ["5204:8080"]
-    depends_on: [rabbitmq, jaeger]
+    depends_on: [postgres-ordering, rabbitmq, jaeger]
 
 volumes:
+  pg_ordering:
   catalog_data:
   identity_data:
