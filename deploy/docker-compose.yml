@@ -43,6 +43,7 @@ services:
       Jwt__Audience: microshop
       Jwt__Key: g_#eB9VGUzOJ);PW%hKE[tMd]y=\Zlv2Y~fS$RsHC,N'I?x5&0oa`7w}Ar|c63/.
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      SEQ_URL: http://seq:5341
     ports: ["5201:8080"]
     depends_on: [postgres-catalog, jaeger]
 
@@ -56,6 +57,7 @@ services:
       Jwt__Audience: microshop
       Jwt__Key: g_#eB9VGUzOJ);PW%hKE[tMd]y=\Zlv2Y~fS$RsHC,N'I?x5&0oa`7w}Ar|c63/.
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      SEQ_URL: http://seq:5341
     ports: ["5202:8080"]
     depends_on: [postgres-identity, jaeger]
 
@@ -89,6 +91,7 @@ services:
       RabbitMQ__Username: guest
       RabbitMQ__Password: guest
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      SEQ_URL: http://seq:5341
     ports: ["5203:8080"]
     depends_on: [redis, rabbitmq, jaeger]
 
@@ -102,10 +105,23 @@ services:
       RabbitMQ__Username: guest
       RabbitMQ__Password: guest
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      SEQ_URL: http://seq:5341
     ports: ["5204:8080"]
     depends_on: [postgres-ordering, rabbitmq, jaeger]
+
+  seq:
+    image: datalust/seq:latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SEQ_FIRSTRUN_NOAUTHENTICATION=true
+    ports:
+      - "5340:80"    # UI → http://localhost:5340
+      - "5341:5341"  # ingestion API для Serilog
+    volumes:
+      - seq_data:/data
 
 volumes:
   pg_ordering:
   catalog_data:
   identity_data:
+  seq_data:

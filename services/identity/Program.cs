@@ -11,8 +11,21 @@ using OpenTelemetry.Trace;
 using MicroShop.Services.Identity.Endpoints;
 using MicroShop.Services.Catalog.Infrastructure.Health;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using System.Diagnostics;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var seqUrl = builder.Configuration["SEQ_URL"] ?? "http://seq:5341";
+
+Log.Logger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("service", builder.Environment.ApplicationName) // удобно фильтровать в Seq
+    .WriteTo.Console()
+    .WriteTo.Seq(seqUrl)  // ← добавили Seq
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 // Db
 var cs = builder.Configuration.GetConnectionString("Default")
@@ -53,6 +66,18 @@ builder.Services.AddHealthChecks()
     .AddCheck<EfDbHealthCheck<ApplicationDbContext>>("db", tags: new[] { "ready" });
 
 var app = builder.Build();
+
+app.Use(async (ctx, next) =>
+{
+    var traceId = Activity.Current?.TraceId.ToString();
+    var userId = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+    using var _1 = traceId != null ? Serilog.Context.LogContext.PushProperty("traceId", traceId) : null;
+    using var _2 = userId != null ? Serilog.Context.LogContext.PushProperty("userId", userId) : null;
+
+    await next();
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -7,8 +7,23 @@ using MicroShop.Services.Ordering.Infrastructure;
 using MicroShop.Services.Catalog.Infrastructure.Health;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Text.Json;
+using System.Diagnostics;
+using System.Security.Claims;
+using Serilog;
+
 
 var builder = WebApplication.CreateBuilder(args);
+
+var seqUrl = builder.Configuration["SEQ_URL"] ?? "http://seq:5341";
+
+Log.Logger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("service", builder.Environment.ApplicationName) // удобно фильтровать в Seq
+    .WriteTo.Console()
+    .WriteTo.Seq(seqUrl)  // ← добавили Seq
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 // EF Core + Npgsql
 var cs = builder.Configuration.GetConnectionString("Default")
@@ -47,18 +62,32 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+app.Use(async (ctx, next) =>
+{
+    var traceId = Activity.Current?.TraceId.ToString();
+    var userId = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+    using var _1 = traceId != null ? Serilog.Context.LogContext.PushProperty("traceId", traceId) : null;
+    using var _2 = userId != null ? Serilog.Context.LogContext.PushProperty("userId", userId) : null;
+
+    await next();
+});
+
 app.MapHealthChecks("/health/live").AllowAnonymous();
-app.MapHealthChecks("/health/ready", new HealthCheckOptions {
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
     Predicate = r => r.Tags.Contains("ready"),
     ResponseWriter = async (ctx, report) =>
     {
         ctx.Response.ContentType = "application/json";
-        var payload = new {
+        var payload = new
+        {
             status = report.Status.ToString(),
-            details = report.Entries.Select(kv => new {
+            details = report.Entries.Select(kv => new
+            {
                 name = kv.Key,
                 status = kv.Value.Status.ToString(),
-                error  = kv.Value.Exception?.Message
+                error = kv.Value.Exception?.Message
             })
         };
         await ctx.Response.WriteAsync(JsonSerializer.Serialize(payload));

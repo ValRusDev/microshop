@@ -13,8 +13,22 @@ using MicroShop.Services.Basket.Endpoints;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using MicroShop.Services.Basket.Infrastructure.Health;
+using System.Diagnostics;
+using System.Security.Claims;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var seqUrl = builder.Configuration["SEQ_URL"] ?? "http://seq:5341";
+
+Log.Logger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("service", builder.Environment.ApplicationName) // удобно фильтровать в Seq
+    .WriteTo.Console()
+    .WriteTo.Seq(seqUrl)  // ← добавили Seq
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -85,6 +99,17 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.Use(async (ctx, next) =>
+{
+    var traceId = Activity.Current?.TraceId.ToString();
+    var userId = ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+    using var _1 = traceId != null ? Serilog.Context.LogContext.PushProperty("traceId", traceId) : null;
+    using var _2 = userId != null ? Serilog.Context.LogContext.PushProperty("userId", userId) : null;
+
+    await next();
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -131,7 +156,8 @@ group.MapPost("/{userId:guid}/checkout", async (Guid userId, IBasketStore store,
 });
 
 app.MapHealthChecks("/health/live").AllowAnonymous();
-app.MapHealthChecks("/health/ready", new HealthCheckOptions {
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
     Predicate = r => r.Tags.Contains("ready")
 }).AllowAnonymous();
 
