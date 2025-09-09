@@ -10,6 +10,9 @@ using MicroShop.Services.Basket.Domain;
 using MicroShop.Services.Basket.Infrastructure;
 using MicroShop.Contracts;
 using MicroShop.Services.Basket.Endpoints;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using MicroShop.Services.Basket.Infrastructure.Health;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,8 +32,13 @@ builder.Services.AddAuthentication().AddJwtBearer(o =>
 {
     o.TokenValidationParameters = new()
     {
-        ValidateIssuer = true, ValidateAudience = true, ValidateIssuerSigningKey = true, ValidateLifetime = true,
-        ValidIssuer = jwt["Issuer"], ValidAudience = jwt["Audience"], IssuerSigningKey = signingKey
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateIssuerSigningKey = true,
+        ValidateLifetime = true,
+        ValidIssuer = jwt["Issuer"],
+        ValidAudience = jwt["Audience"],
+        IssuerSigningKey = signingKey
     };
 });
 builder.Services.AddAuthorization();
@@ -67,6 +75,10 @@ builder.Services.AddOpenTelemetry()
     .WithTracing(t => t.AddAspNetCoreInstrumentation()
                        .AddHttpClientInstrumentation()
                        .AddOtlpExporter());
+
+builder.Services.AddHealthChecks()
+    .AddCheck<RedisCacheHealthCheck>("redis", tags: new[] { "ready" })
+    .AddCheck<RabbitMqHealthCheck>("rabbit", tags: new[] { "ready" });
 
 var app = builder.Build();
 
@@ -117,5 +129,10 @@ group.MapPost("/{userId:guid}/checkout", async (Guid userId, IBasketStore store,
     await store.ClearAsync(userId);
     return Results.Accepted($"/api/v1/orders", new { message = "Checkout requested", basket.Total });
 });
+
+app.MapHealthChecks("/health/live").AllowAnonymous();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions {
+    Predicate = r => r.Tags.Contains("ready")
+}).AllowAnonymous();
 
 app.Run();

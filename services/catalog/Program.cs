@@ -5,6 +5,9 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using MicroShop.Services.Catalog.Infrastructure;
 using MicroShop.Services.Catalog.Domain;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using MicroShop.Services.Catalog.Infrastructure.Health;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,7 +54,8 @@ builder.Services.AddOpenTelemetry()
         .AddHttpClientInstrumentation()
         .AddOtlpExporter()); // читает OTEL_EXPORTER_OTLP_ENDPOINT (например, http://jaeger:4317)
 
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddCheck<EfDbHealthCheck<CatalogDbContext>>("db", tags: new[] { "ready" });
 
 var app = builder.Build();
 
@@ -73,8 +77,10 @@ app.MapPost("/api/v1/products", async (CatalogDbContext db, Product p) =>
     return Results.Created($"/api/v1/products/{p.Id}", p);
 }).RequireAuthorization();
 
-// Health (для readiness/liveness; опционально)
-app.MapHealthChecks("/health").AllowAnonymous();
+app.MapHealthChecks("/health/live").AllowAnonymous();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions {
+    Predicate = r => r.Tags.Contains("ready")
+}).AllowAnonymous();
 
 // ===== Авто-миграция + сид на старте =====
 await using (var scope = app.Services.CreateAsyncScope())

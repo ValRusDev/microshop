@@ -4,7 +4,9 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using MicroShop.Services.Ordering.Application;
 using MicroShop.Services.Ordering.Infrastructure;
-using MicroShop.Services.Ordering.Domain;
+using MicroShop.Services.Catalog.Infrastructure.Health;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +16,7 @@ var cs = builder.Configuration.GetConnectionString("Default")
          ?? "Host=postgres-ordering;Port=5432;Database=orderingdb;Username=ordering;Password=ordering";
 builder.Services.AddDbContext<OrderingDbContext>(o => o.UseNpgsql(cs));
 
-// MassTransit + RabbitMQ
+// MassTransit
 builder.Services.AddMassTransit(x =>
 {
     x.SetKebabCaseEndpointNameFormatter();
@@ -31,7 +33,7 @@ builder.Services.AddMassTransit(x =>
     });
 });
 
-// OTel → Jaeger
+// OpenTelemetry
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(r => r.AddService("ordering-service"))
     .WithTracing(t => t.AddAspNetCoreInstrumentation()
@@ -39,13 +41,31 @@ builder.Services.AddOpenTelemetry()
                        .AddOtlpExporter());
 
 // Health
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddCheck<EfDbHealthCheck<OrderingDbContext>>("db", tags: new[] { "ready" })
+    .AddCheck<RabbitMqHealthCheck>("rabbit", tags: new[] { "ready" });
 
 var app = builder.Build();
 
-app.MapHealthChecks("/health").AllowAnonymous();
+app.MapHealthChecks("/health/live").AllowAnonymous();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions {
+    Predicate = r => r.Tags.Contains("ready"),
+    ResponseWriter = async (ctx, report) =>
+    {
+        ctx.Response.ContentType = "application/json";
+        var payload = new {
+            status = report.Status.ToString(),
+            details = report.Entries.Select(kv => new {
+                name = kv.Key,
+                status = kv.Value.Status.ToString(),
+                error  = kv.Value.Exception?.Message
+            })
+        };
+        await ctx.Response.WriteAsync(JsonSerializer.Serialize(payload));
+    }
+}).AllowAnonymous();
 
-// простые read-only эндпойнты
+// read-only API: все заказы пользователя
 app.MapGet("/api/v1/orders/{userId:guid}", async (Guid userId, OrderingDbContext db) =>
 {
     var orders = await db.Orders.Include(o => o.Items)
@@ -55,15 +75,14 @@ app.MapGet("/api/v1/orders/{userId:guid}", async (Guid userId, OrderingDbContext
     return Results.Ok(orders);
 }).AllowAnonymous();
 
-// авто-миграция
+// авто-миграция (c простым ретраем)
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<OrderingDbContext>();
-    var attempts = 0;
-    while (true)
+    for (var attempt = 1; ; attempt++)
     {
         try { await db.Database.MigrateAsync(); break; }
-        catch when (++attempts < 5) { await Task.Delay(TimeSpan.FromSeconds(2 * attempts)); }
+        catch when (attempt < 5) { await Task.Delay(TimeSpan.FromSeconds(2 * attempt)); }
     }
 }
 

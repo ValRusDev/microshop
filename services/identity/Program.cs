@@ -9,6 +9,8 @@ using MicroShop.Services.Identity.Infrastructure;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using MicroShop.Services.Identity.Endpoints;
+using MicroShop.Services.Catalog.Infrastructure.Health;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,9 +49,18 @@ builder.Services.AddOpenTelemetry()
                        .AddHttpClientInstrumentation()
                        .AddOtlpExporter());
 
+builder.Services.AddHealthChecks()
+    .AddCheck<EfDbHealthCheck<ApplicationDbContext>>("db", tags: new[] { "ready" });
+
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
+
+
+app.MapHealthChecks("/health/live").AllowAnonymous();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions {
+    Predicate = r => r.Tags.Contains("ready")
+}).AllowAnonymous();
 
 app.MapPost("/api/v1/auth/register", async (UserManager<ApplicationUser> um, RegisterDto dto) =>
 {

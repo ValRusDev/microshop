@@ -6,7 +6,7 @@ public class Order
     public Guid UserId { get; set; }
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
     public decimal Total { get; set; }
-    public string Status { get; set; } = "Pending"; // Pending -> Submitted -> ...
+    public string Status { get; set; } = "Pending";
     public List<OrderItem> Items { get; set; } = new();
 }
 

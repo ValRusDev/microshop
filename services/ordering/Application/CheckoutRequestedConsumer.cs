@@ -7,16 +7,14 @@ using MicroShop.Services.Ordering.Infrastructure;
 
 namespace MicroShop.Services.Ordering.Application;
 
-public class CheckoutRequestedConsumer(ILogger<CheckoutRequestedConsumer> logger, OrderingDbContext db) 
+public class CheckoutRequestedConsumer(ILogger<CheckoutRequestedConsumer> logger, OrderingDbContext db)
     : IConsumer<CheckoutRequested>
 {
     public async Task Consume(ConsumeContext<CheckoutRequested> ctx)
     {
         var msg = ctx.Message;
-        logger.LogInformation("Ordering received CheckoutRequested: User {UserId}, Items {Count}, Total {Total}",
-            msg.UserId, msg.Items.Count, msg.Total);
 
-        // простая идемпотентность: если заказ уже создан с тем же CorrelationId — пропустим
+        // простая идемпотентность по CorrelationId
         var existing = await db.Orders.AsNoTracking()
             .FirstOrDefaultAsync(o => o.Id == ctx.CorrelationId);
         if (existing is not null) return;
@@ -37,6 +35,6 @@ public class CheckoutRequestedConsumer(ILogger<CheckoutRequestedConsumer> logger
 
         db.Add(order);
         await db.SaveChangesAsync();
-        logger.LogInformation("Order {OrderId} saved with {ItemCount} items.", order.Id, order.Items.Count);
+        logger.LogInformation("Order {OrderId} saved ({ItemCount} items).", order.Id, order.Items.Count);
     }
 }
